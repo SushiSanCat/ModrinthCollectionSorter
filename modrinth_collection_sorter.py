@@ -9,11 +9,11 @@ import webbrowser
 # - If NO: The mod is listed as "not available for target version"
 # So the script doesn't actually stop early - it processes all mods but categorizes them differently
 
-CURRENT_MINECRAFT_VERSION = '1.21.6'  # The version you are currently using
-TARGET_MINECRAFT_VERSION = '1.21.8'  # The version you want to check for updates
+CURRENT_MINECRAFT_VERSION = 'CURRENTVERSIONHERE'  # The version you are currently using (source collection ID)
+TARGET_MINECRAFT_VERSION = 'TARGETVERSIONHERE'  # The version you want to check for updates (target collection ID)
 LOADER = 'fabric'  # Your desired mod loader (e.g., "fabric", "forge", "quilt", "neoforge")
-COLLECTION_ID = 'HO2OnfaY'  # Your source collection ID
-TARGET_COLLECTION_ID = 'WiQSfz9H'  # Your target collection ID (replace as needed)
+COLLECTION_ID = 'PASTE_HERE_YOUR_COLLECTION_ID'  # Your source collection ID (replace as needed)
+TARGET_COLLECTION_ID = 'PASTE_HERE_YOUR_COLLECTION_ID'  # Your target collection ID (replace as needed)
 
 sys.argv = [
     'download_modrinth.py',
@@ -84,6 +84,7 @@ args = parse_args()
 LOGS_DIR = "modrinth_collection_sorter_logs"
 HAS_VERSION_LOG = "has_target_version_mods.txt"
 ALREADY_IN_TARGET_LOG = "already_in_target_collection.txt"
+NO_UPDATE_LOG = "no_update_available_mods_logs.txt"
 
 for d in [LOGS_DIR]:
     if not os.path.exists(d):
@@ -146,6 +147,7 @@ def main():
     already_in_target_count = 0
     no_update_count = 0
     has_update_mod_links = []
+    no_update_mod_links = []
     no_update_mods = []
     
     for idx, mod_id in enumerate(mods, 1):
@@ -167,6 +169,8 @@ def main():
             mod_name = mod_details["title"] if mod_details and "title" in mod_details else "Unknown"
             no_update_count += 1
             no_update_mods.append(f"{no_update_count}. {mod_name} ({mod_id})")
+            no_update_mod_links.append(f"https://modrinth.com/mod/{mod_id}")
+            log_event(NO_UPDATE_LOG, mod_id, mod_name, f"❌ NO {args.target_version} VERSION UPDATE AVAILABLE:", no_update_count)
 
     print(f"\nSummary:")
     print(f"Total mods checked: {len(mods)}")
@@ -178,6 +182,15 @@ def main():
         print(f"\nMods NOT available for {args.target_version} (not in target collection):")
         for mod_entry in no_update_mods:
             print(mod_entry)
+        
+        # Ask if user wants to open "not available" mods
+        open_no_update_links = input(f"\nDo you want to open all mods that are NOT available for {args.target_version} in your browser? (Y/N): ").strip().lower()
+        if open_no_update_links == 'y':
+            print("Opening all 'not available' mod links in your browser...")
+            for link in no_update_mod_links:
+                webbrowser.open_new_tab(link)
+        else:
+            print("Not opening 'not available' mod links.")
 
     if has_update_mod_links:
         open_links = input("\nDo you want to open all mods that have a version update in your browser? (Y/N): ").strip().lower()
