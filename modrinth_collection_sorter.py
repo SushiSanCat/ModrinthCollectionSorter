@@ -2,11 +2,18 @@ import sys
 import datetime
 import webbrowser
 
+# Script Logic Explanation:
+# This script checks ALL mods in the source collection (e.g., 114 mods)
+# For each mod, it checks if there's a version available for the target Minecraft version
+# - If YES: The mod is processed (either marked as already in target collection or available for update)
+# - If NO: The mod is listed as "not available for target version"
+# So the script doesn't actually stop early - it processes all mods but categorizes them differently
+
 CURRENT_MINECRAFT_VERSION = '1.21.6'  # The version you are currently using
-TARGET_MINECRAFT_VERSION = '1.21.7'  # The version you want to check for updates
+TARGET_MINECRAFT_VERSION = '1.21.8'  # The version you want to check for updates
 LOADER = 'fabric'  # Your desired mod loader (e.g., "fabric", "forge", "quilt", "neoforge")
 COLLECTION_ID = 'HO2OnfaY'  # Your source collection ID
-TARGET_COLLECTION_ID = 'SXY7IKoq'  # Your target collection ID (replace as needed)
+TARGET_COLLECTION_ID = 'WiQSfz9H'  # Your target collection ID (replace as needed)
 
 sys.argv = [
     'download_modrinth.py',
@@ -125,6 +132,7 @@ def main():
     mods = collection_details["projects"]
     print(f"Mods in source collection: {mods}\n")
     print(f"Total mods in source collection: {len(mods)}\n")
+    print(f"Processing all {len(mods)} mods to check for {args.target_version} compatibility...\n")
 
     # Get mods in the target collection
     target_collection_details = modrinth_client.get_collection(args.target_collection)
@@ -136,8 +144,13 @@ def main():
 
     has_update_count = 0
     already_in_target_count = 0
+    no_update_count = 0
     has_update_mod_links = []
+    no_update_mods = []
+    
     for idx, mod_id in enumerate(mods, 1):
+        print(f"Checking mod {idx}/{len(mods)}: {mod_id}")
+        
         if check_mod_for_target_version(mod_id):
             mod_details = modrinth_client.get(f"/v2/project/{mod_id}")
             mod_name = mod_details["title"] if mod_details and "title" in mod_details else "Unknown"
@@ -148,11 +161,23 @@ def main():
                 has_update_count += 1
                 log_event(HAS_VERSION_LOG, mod_id, mod_name, f"✅ HAS {args.target_version} VERSION UPDATE (BUT NOT IN TARGET COLLECTION):", has_update_count)
                 has_update_mod_links.append(f"https://modrinth.com/mod/{mod_id}")
+        else:
+            # Mod doesn't have update for target version
+            mod_details = modrinth_client.get(f"/v2/project/{mod_id}")
+            mod_name = mod_details["title"] if mod_details and "title" in mod_details else "Unknown"
+            no_update_count += 1
+            no_update_mods.append(f"{no_update_count}. {mod_name} ({mod_id})")
 
     print(f"\nSummary:")
     print(f"Total mods checked: {len(mods)}")
     print(f"Mods with update for {args.target_version} but not in target collection: {has_update_count}")
     print(f"Mods already in target collection: {already_in_target_count}")
+    print(f"Mods without update for {args.target_version}: {no_update_count}")
+    
+    if no_update_mods:
+        print(f"\nMods NOT available for {args.target_version} (not in target collection):")
+        for mod_entry in no_update_mods:
+            print(mod_entry)
 
     if has_update_mod_links:
         open_links = input("\nDo you want to open all mods that have a version update in your browser? (Y/N): ").strip().lower()
